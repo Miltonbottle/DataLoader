@@ -3,6 +3,8 @@ data/job_description.docx
 data/*.jsonl
 data/*.docx
 outputs/*.csv
+outputs/*.txt
 __pycache__/
 *.py[cod]
 venv/
+.env
