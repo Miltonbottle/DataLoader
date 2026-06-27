@@ -44,18 +44,27 @@ pip install -r requirements.txt
 
 ## Reproduce submission
 
+### Step 1 — Precompute embeddings (one-time, ~15-20 min offline)
+```bash
+python src/precompute_embeddings.py \
+  --candidates ./candidates.jsonl.gz \
+  --jd ./data/job_description.md \
+  --out_dir ./precomputed
+```
+
+### Step 2 — Run ranker using precomputed embeddings (~60s)
 ```bash
 python src/rank.py \
   --candidates ./candidates.jsonl.gz \
   --jd ./data/job_description.md \
+  --precomputed ./precomputed \
   --out ./submission.csv
 ```
 
-Also accepts uncompressed `.jsonl`:
-
+### Fallback — Live mode (no precomputation, ~3-4 min)
 ```bash
 python src/rank.py \
-  --candidates ./candidates.jsonl \
+  --candidates ./candidates.jsonl.gz \
   --jd ./data/job_description.md \
   --out ./submission.csv
 ```
@@ -76,3 +85,10 @@ Google Colab notebook (runs on `sample_candidates.json`, ~50 candidates):
 - `sentence-transformers==2.7.0` — local embedding model (`all-MiniLM-L6-v2`)
 - `numpy`, `pandas` — standard
 - No external API calls during ranking
+
+# Clone (LFS files download automatically)
+git clone https://github.com/Miltonbottle/DataLoader.git
+cd DataLoader
+
+# If embeddings.npy didn't download (LFS not installed):
+git lfs pull
