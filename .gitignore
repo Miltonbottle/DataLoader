@@ -5,8 +5,6 @@ candidates.jsonl.gz
 *.jsonl.gz
 
 # Submission output — submit via portal, not GitHub
-outputs/
-submission.csv
 
 # Python cache
 __pycache__/
