@@ -1,0 +1,39 @@
+DataLoader/
+│
+├── src/
+│   ├── rank.py
+│   ├── feature_extractor.py
+│   ├── composite_scorer.py
+│   ├── semantic_ranker.py
+│   └── precompute_embeddings.py
+│
+├── data/
+│   ├── job_description.md
+│   └── sample_candidates.json
+│
+├── precomputed/                 ← push this after running precompute
+│   ├── embeddings.npy
+│   ├── candidate_ids.json
+│   └── jd_embedding.npy
+│
+├── outputs/                     ← gitignored
+│   └── submission.csv
+│
+├── README.md
+├── requirements.txt
+├── submission_metadata.yaml
+└── .gitignore
+
+
+What goes where locally (not on GitHub):
+
+candidates.jsonl.gz — 465MB, keep in repo root locally but gitignored
+validate_submission.py — keep locally for checking, no need in repo
+submission.csv — submit via portal only
+
+Push order:
+
+Push everything except candidates.jsonl.gz and outputs/
+Run precompute overnight → then push precomputed/ folder
+Update submission_metadata.yaml with Colab link → push again
+Submit CSV via portal
