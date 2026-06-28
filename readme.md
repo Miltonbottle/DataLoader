@@ -51,27 +51,29 @@ python src/precompute_embeddings.py --candidates ./data/candidates.jsonl --jd ./
 
 ```
 DataLoader/
-├── src/
-│   ├── rank.py                    # Main pipeline runner
-│   ├── feature_extractor.py       # Pass 1 heuristics + JD trap detection
-│   ├── composite_scorer.py        # Scoring, blending, reasoning generation
-│   ├── semantic_ranker.py         # Pass 2 semantic re-ranker (live mode fallback)
-│   └── precompute_embeddings.py   # One-time offline embedding generator
 ├── data/                          # ← place candidates.jsonl + job_description.md here
+│   ├── candidates.jsonl
 │   ├── job_description.md
 │   └── sample_candidates.json     # 50-candidate sample for sandbox
-├── precomputed/                   # Git LFS — downloads automatically on clone
-│   ├── embeddings.npy             # 100K candidate embeddings (~153MB)
-│   ├── candidate_ids.json
-│   └── jd_embedding.npy
 ├── outputs/
 │   └── khikhi.csv                 # Final submission CSV
+├── precomputed/                   # Git LFS — downloads automatically on clone
+│   ├── candidate_ids.json
+│   ├── embeddings.npy             # 100K candidate embeddings (~153MB)
+│   └── jd_embedding.npy
 ├── scripts/
 │   └── show_top10.py              # Debug helper — prints top 10 ranked candidates
-├── README.md
+├── src/
+│   ├── composite_scorer.py        # Scoring, blending, reasoning generation
+│   ├── feature_extractor.py       # Pass 1 heuristics + JD trap detection
+│   ├── precompute_embeddings.py   # One-time offline embedding generator
+│   ├── rank.py                    # Main pipeline runner
+│   └── semantic_ranker.py         # Pass 2 semantic re-ranker (live mode fallback)
+├── .gitattributes
+├── .gitignore
+├── readme.md
 ├── requirements.txt
-├── submission_metadata.yaml
-└── validate_submission.py
+└── submission_metadata.yaml
 ```
 
 ---
