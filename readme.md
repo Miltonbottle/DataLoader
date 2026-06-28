@@ -68,8 +68,6 @@ DataLoader/
 │   └── khikhi.csv                 # Final submission CSV
 ├── scripts/
 │   └── show_top10.py              # Debug helper — prints top 10 ranked candidates
-├── docs/
-│   └── EXECUTION_GUIDE.md         # Detailed execution notes
 ├── README.md
 ├── requirements.txt
 ├── submission_metadata.yaml
