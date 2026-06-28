@@ -42,16 +42,21 @@ def load_candidates(jsonl_path):
     ids_ordered = []
     print(f"Loading candidates from {jsonl_path}...")
     with opener(jsonl_path, 'rt') as f:
-        for i, line in enumerate(f):
-            line = line.strip()
-            if not line:
-                continue
-            cand = json.loads(line)
-            cid  = cand['candidate_id']
-            candidates[cid] = cand
-            ids_ordered.append(cid)
-            if (i + 1) % 20_000 == 0:
-                print(f"  Loaded {i+1:,} candidates...")
+        content = f.read().strip()
+
+    # Support both JSON array (sample_candidates.json) and JSONL (candidates.jsonl)
+    if content.startswith('['):
+        records = json.loads(content)
+    else:
+        records = [json.loads(line) for line in content.splitlines() if line.strip()]
+
+    for i, cand in enumerate(records):
+        cid = cand['candidate_id']
+        candidates[cid] = cand
+        ids_ordered.append(cid)
+        if (i + 1) % 20_000 == 0:
+            print(f"  Loaded {i+1:,}...")
+
     print(f"  Total loaded: {len(candidates):,}")
     return candidates, ids_ordered
 
