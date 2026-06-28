@@ -1,94 +1,101 @@
 # Redrob Hackathon v4 — Intelligent Candidate Ranking
 
-**Team:** khikhi  
-**Challenge:** Intelligent Candidate Discovery & Ranking  
+> **Team:** khikhi
+> **Sandbox:** [Run in Colab](https://colab.research.google.com/drive/1gv1xVAySIs5fgwDEPZz2SYXg2jhe5-Ia?usp=sharing)
+> **Metadata & AI declarations:** see `submission_metadata.yaml` in repo root
 
 ---
 
-## Approach
+## Quickstart (Stage 3 reproduction)
 
-Two-pass heuristic-semantic pipeline:
+```bash
+git clone https://github.com/Miltonbottle/DataLoader.git
+cd DataLoader
+pip install -r requirements.txt
+```
 
-- **Pass 1 (heuristic funnel, ~25s):** Scans all 100K candidates using O(1) string-blob matching. Applies hard disqualification gates (honeypots, ghost profiles, location, experience floor) and JD trap penalties. Outputs top 3,000 finalists.
-- **Pass 2 (semantic re-ranking, ~60s):** Encodes all 3,000 finalists in a single vectorised batch using `all-MiniLM-L6-v2`. Final score is an additive blend: semantic (45%) + heuristic base (45%) + behavioral bonus (10%) across 9 Redrob signals.
+> **Data placement:** Place `candidates.jsonl` (or `candidates.jsonl.gz`) and `job_description.md` inside the `/data` folder before running.
 
-Total runtime: ~180–230s on CPU.
+> **Precomputed embeddings are already in the repo via Git LFS** — no need to rerun precomputation. If `precomputed/embeddings.npy` didn't download, run `git lfs pull`.
+
+**Run ranking (~60–130s on CPU):**
+```bash
+# Uncompressed
+python src/rank.py --candidates ./data/candidates.jsonl --jd ./data/job_description.md --precomputed ./precomputed --out ./outputs/submission.csv
+
+# Gzipped
+python src/rank.py --candidates ./data/candidates.jsonl.gz --jd ./data/job_description.md --precomputed ./precomputed --out ./outputs/submission.csv
+```
+
+**Validate:**
+```bash
+python validate_submission.py ./outputs/submission.csv
+```
+
+**Optional — rerun precomputation from scratch (~25 min, not required):**
+```bash
+python src/precompute_embeddings.py --candidates ./data/candidates.jsonl --jd ./data/job_description.md --out_dir ./precomputed
+```
+
+---
+
+## Architecture tl;dr
+
+- **Precomputation (offline):** All 100K candidates vectorized using `all-MiniLM-L6-v2` and saved to `precomputed/embeddings.npy` — zero encoding overhead at ranking time
+- **Pass 1 — Heuristic funnel (~25s):** O(1) string-blob matching drops ~97K candidates instantly via hard gates (honeypots, ghosts, location) and 7 JD trap penalties (LangChain tourist, title chaser, pure consulting, hands-off architect, CV-without-NLP, keyword stuffer, pure research)
+- **Pass 2 — Semantic re-ranking (~60s):** Single vectorised NumPy cosine similarity matrix op across all survivors; final score = `semantic×0.45 + heuristic×0.45 + behavioral×0.10` across 9 Redrob platform signals
 
 ---
 
 ## Repo structure
 
 ```
+DataLoader/
 ├── src/
-│   ├── rank.py                  # Main pipeline runner
-│   ├── feature_extractor.py     # Pass 1 heuristics
-│   ├── composite_scorer.py      # Scoring + reasoning
-│   └── semantic_ranker.py       # Pass 2 semantic re-ranker
-├── data/
-│   ├── sample_candidates.json   # 50-candidate sample for sandbox
-│   └── job_description.md       # JD used for ranking
+│   ├── rank.py                    # Main pipeline runner
+│   ├── feature_extractor.py       # Pass 1 heuristics + JD trap detection
+│   ├── composite_scorer.py        # Scoring, blending, reasoning generation
+│   ├── semantic_ranker.py         # Pass 2 semantic re-ranker (live mode fallback)
+│   └── precompute_embeddings.py   # One-time offline embedding generator
+├── data/                          # ← place candidates.jsonl + job_description.md here
+│   ├── job_description.md
+│   └── sample_candidates.json     # 50-candidate sample for sandbox
+├── precomputed/                   # Git LFS — downloads automatically on clone
+│   ├── embeddings.npy             # 100K candidate embeddings (~153MB)
+│   ├── candidate_ids.json
+│   └── jd_embedding.npy
+├── outputs/
+│   └── khikhi.csv                 # Final submission CSV
+├── README.md
 ├── requirements.txt
-├── submission_metadata.yaml
-└── README.md
+└── submission_metadata.yaml
 ```
 
 ---
 
-## Setup
+## Compute constraints
 
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Reproduce submission
-
-### Step 1 — Precompute embeddings (one-time, ~15-20 min offline)
-```bash
-python src/precompute_embeddings.py \
-  --candidates ./candidates.jsonl.gz \
-  --jd ./data/job_description.md \
-  --out_dir ./precomputed
-```
-
-### Step 2 — Run ranker using precomputed embeddings (~60s)
-```bash
-python src/rank.py \
-  --candidates ./candidates.jsonl.gz \
-  --jd ./data/job_description.md \
-  --precomputed ./precomputed \
-  --out ./submission.csv
-```
-
-### Fallback — Live mode (no precomputation, ~3-4 min)
-```bash
-python src/rank.py \
-  --candidates ./candidates.jsonl.gz \
-  --jd ./data/job_description.md \
-  --out ./submission.csv
-```
-
-Runs end-to-end in **≤5 minutes on CPU, 16GB RAM, no network required**.
-
----
-
-## Sandbox
-
-Google Colab notebook (runs on `sample_candidates.json`, ~50 candidates):  
-**[INSERT COLAB LINK HERE]**
+| Constraint | Limit | Our usage |
+|---|---|---|
+| Runtime | ≤5 min | ~60–130s |
+| RAM | ≤16GB | ~4–6GB |
+| GPU | Not allowed | CPU only |
+| Network | Not allowed | No API calls during ranking |
+| Disk | ≤5GB | ~153MB (embeddings) |
 
 ---
 
 ## Dependencies
 
-- `sentence-transformers==2.7.0` — local embedding model (`all-MiniLM-L6-v2`)
-- `numpy`, `pandas` — standard
-- No external API calls during ranking
+```
+sentence-transformers==2.7.0
+numpy>=1.24.0
+pandas>=2.0.0
+python-docx>=1.1.0
+```
 
-# Clone (LFS files download automatically)
-git clone https://github.com/Miltonbottle/DataLoader.git
-cd DataLoader
+---
 
-# If embeddings.npy didn't download (LFS not installed):
-git lfs pull
+## AI tools declared
+
+Claude (primary), Gemini (secondary), ChatGPT (minor debugging). Full declaration in `submission_metadata.yaml`. No candidate data sent to any external API.
