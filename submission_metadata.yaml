@@ -1,4 +1,4 @@
-# Redrob Hackathon — Submission Metadata
+# Redrob Hackathon v4 — Submission Metadata
 # ============================================================================
 # Team identity
 # ============================================================================
@@ -7,79 +7,87 @@ team_name: "khikhi"
 primary_contact:
   name: "Ishika Gupta"
   email: "igputa2_be23@thapar.edu"
-  phone: "+91-XXXXXXXXXX"        # ← fill your number before submitting
+  phone: "+91-6260915479"
 
 team_members:
   - name: "Ishika Gupta"
     email: "igputa2_be23@thapar.edu"
     role: "Team Lead / ML Engineer"
 
+  - name: "Atharva Pandey"
+    email: "atharvapandey100@gmail.com"
+    role: "Data Engineer / Core Developer"
+
 # ============================================================================
 # Code and reproducibility
 # ============================================================================
 github_repo: "https://github.com/Miltonbottle/DataLoader"
 
-sandbox_link: "PASTE_COLAB_LINK_HERE"
-# ← Replace with your Google Colab share link once created
-# See instructions: share → anyone with link → viewer
+sandbox_link: "https://colab.research.google.com/drive/1gv1xVAySIs5fgwDEPZz2SYXg2jhe5-Ia?usp=sharing"
 
-reproduce_command: "python src/precompute_embeddings.py --candidates ./candidates.jsonl.gz --jd ./data/job_description.md --out_dir ./precomputed && python src/rank.py --candidates ./candidates.jsonl.gz --jd ./data/job_description.md --precomputed ./precomputed --out ./submission.csv"
+# ── Reproduce command ────────────────────────────────────────────────────────
+# OPTION A — Uncompressed/Unzipped JSONL (recommended, use this if you have candidates.jsonl)
+reproduce_command: "python src/precompute_embeddings.py --candidates ./data/candidates.jsonl --jd ./data/job_description.md --out_dir ./precomputed && python src/rank.py --candidates ./data/candidates.jsonl --jd ./data/job_description.md --precomputed ./precomputed --out ./outputs/submission.csv"
+
+# For gzipped version: python src/precompute_embeddings.py --candidates ./data/candidates.jsonl.gz --jd ./data/job_description.md --out_dir ./precomputed && python src/rank.py --candidates ./data/candidates.jsonl.gz --jd ./data/job_description.md --precomputed ./precomputed --out ./outputs/submission.csv
+# ────────────────────────────────────────────────────────────────────────────
 
 # ============================================================================
 # Compute environment
 # ============================================================================
 compute:
-  platform: "HP Laptop, Intel Core i5-1135G7"
+  platform: "HP Laptop, Intel Core i5-1135G7 @ 2.40GHz"
   cpu_cores: 4
   ram_gb: 8
-  python_version: "3.11"                        # run `python --version` to confirm exact
-  os: "Windows 11"                              # update if Linux/other
+  python_version: "3.13.5"
+  os: "Windows 11"
   uses_gpu_for_inference: false
   has_network_during_ranking: false
-  pre_computation_required: true
-  pre_computation_time_minutes: 20   # one-time offline; ranking itself runs in ~60s
+  pre_computation_required: true  # Already precomputed — embeddings.npy included in repo via Git LFS. Judges do not need to rerun this step. If rerunning from scratch, expect ~25 min on CPU.
+  pre_computation_time_minutes: 25  # Irrelevant for reproduction — precomputed artifacts already in repo. Ranking step completes in ~60-120s.
 
 # ============================================================================
 # AI tools declaration
 # ============================================================================
 ai_tools_used:
-  - "Claude"
+  - "Claude"    # Primary: architecture design, pipeline optimization, code review, bug detection
+  - "Gemini"    # Secondary: code suggestions, approach validation
+  - "ChatGPT"   # Minor: one-off debugging (JSON/JSONL loader fix)
 
 ai_usage_summary: |
-  Used Claude (Anthropic) extensively for architectural design, code review,
-  bug detection, and iterative refinement of the pipeline. Claude helped
-  identify scoring bugs (score saturation, location gate errors, missing JD
-  traps), suggested fixes, and reviewed all four source files against the
-  submission spec and job description. All engineering decisions, design
-  choices, and final code were authored and validated by the team. No
-  candidate data was fed to any external LLM.
+  Claude was used extensively as the primary engineering partner — architectural design
+  of the two-pass pipeline, mathematical scoring formulation, edge-case bug detection
+  (float equality gates, score saturation via multiplier inflation, null JSON poison
+  pills), and iterative code review against the submission spec and JD. Gemini was used
+  for secondary validation and code suggestions. ChatGPT assisted with a single
+  debugging session (JSON array vs JSONL loader). All final engineering decisions,
+  design tradeoffs, local testing, and validation were executed by the team. No
+  candidate data was sent to any external API at any point.
 
 # ============================================================================
-# Approach summary
+# Approach summary (≤200 words)
 # ============================================================================
 methodology_summary: |
-  Two-pass heuristic-semantic pipeline with precomputed embeddings.
+  Two-pass hybrid ranker combining heuristic gates with precomputed semantic embeddings,
+  strictly optimized for CPU-only constraints.
 
-  Pass 1 (heuristic funnel, ~25s): Scans all 100K candidates using O(1)
-  string-blob matching. Applies hard disqualification gates (honeypots,
-  ghost profiles, location, experience floor) and six JD trap penalties
-  (LangChain tourist, pure research, title chaser, hands-off architect,
-  pure consulting, keyword stuffer, CV-without-NLP). Boosts candidates with
-  evaluation framework depth (NDCG/MRR/MAP), production shipping history,
-  and verified core skill depth across the full retrieval/ranking stack
-  (FAISS, Qdrant, Elasticsearch, sentence-transformers, LoRA, etc.).
-  Outputs top 3,000 finalists.
+  Precomputation (offline, ~25 min): All 100K candidate profiles are embedded offline
+  using all-MiniLM-L6-v2 and persisted to disk, eliminating runtime encoding overhead.
 
-  Pass 2 (semantic re-ranking, ~60s): Encodes all 3,000 finalists in a
-  single vectorised batch using all-MiniLM-L6-v2, computing cosine
-  similarity against a curated JD embedding. Final score is an additive
-  blend: semantic (45%) + heuristic base (45%) + behavioral bonus (10%).
-  Behavioral bonus incorporates 9 Redrob signals: response rate, notice
-  period, GitHub activity, open-to-work flag, interview completion rate,
-  avg response time, profile completeness, saved-by-recruiters count, and
-  offer acceptance rate.
+  Pass 1 — Heuristic Gates (~25s): O(1) string-blob matching across all 100K candidates.
+  Hard disqualification gates for honeypots (impossible tenure, expert+zero-duration
+  skills, Principal <5yrs, experience floor <3.5yrs), ghost profiles (inactive >180d +
+  response rate <10%), and out-of-scope locations. Seven JD trap penalties applied:
+  LangChain tourist, pure research, title chaser, hands-off architect, pure consulting,
+  keyword stuffer, CV/vision without NLP. Surviving candidates scored on core skill
+  depth across the full retrieval/ranking stack (FAISS, Qdrant, Elasticsearch, etc.)
+  and production shipping signals.
 
-  Total runtime: ~180-230s on CPU, well within the 5-minute Stage 3 limit.
+  Pass 2 — Semantic Re-ranking (~60s): Vectorised NumPy cosine similarity between all
+  surviving candidate embeddings and the precomputed JD vector. Final score: semantic
+  alignment (45%) + heuristic base (45%) + behavioral bonus (10%) across 9 platform
+  signals including response rate, interview completion, notice period, and GitHub
+  activity. Additive blend prevents score saturation.
 
 # ============================================================================
 # Declarations
