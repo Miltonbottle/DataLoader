@@ -18,12 +18,12 @@ pip install -r requirements.txt
 
 > **Precomputed embeddings are already in the repo via Git LFS** — no need to rerun precomputation. If `precomputed/embeddings.npy` didn't download, run `git lfs pull`.
 
-**Run ranking (~60–130s on CPU):**
+**Run ranking (Single command which that produces the submisison csv from candiate file:**
 ```bash
-# Uncompressed
+# if your data is Uncompressed
 python src/rank.py --candidates ./data/candidates.jsonl --jd ./data/job_description.md --precomputed ./precomputed --out ./outputs/submission.csv
 
-# Gzipped
+# if you data Gzipped
 python src/rank.py --candidates ./data/candidates.jsonl.gz --jd ./data/job_description.md --precomputed ./precomputed --out ./outputs/submission.csv
 ```
 
